@@ -2,9 +2,9 @@
  * GStreamer
  * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
  * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
- * Copyright (C) 2020 Niels De Graef <niels.degraef@gmail.com>
- * Copyright (C) 2022 lotape6 <<user@hostname.org>>
- * 
+ * Copyright (C) 2008 Michael Sheldon <mike@mikeasoft.com>
+ * Copyright (C) 2011 Robert Jobbagy <jobbagy.robert@gmail.com>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -40,30 +40,56 @@
  *
  * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
  */
 
 #ifndef __GST_FILTRITO_H__
 #define __GST_FILTRITO_H__
 
 #include <gst/gst.h>
+#include <gst/opencv/gstopencvvideofilter.h>
+
+#include <opencv2/core.hpp>
+#include <opencv2/objdetect.hpp>
 
 G_BEGIN_DECLS
-
-#define GST_TYPE_FILTRITO (gst_filtrito_get_type())
-G_DECLARE_FINAL_TYPE (GstFiltrito, gst_filtrito,
-    GST, FILTRITO, GstElement)
+/* #defines don't like whitespacey bits */
+#define GST_TYPE_FILTRITO \
+  (gst_filtrito_get_type())
+#define GST_FILTRITO(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_FILTRITO,GstFiltrito))
+#define GST_FILTRITO_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_FILTRITO,GstFiltritoClass))
+#define GST_IS_FILTRITO(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_FILTRITO))
+#define GST_IS_FILTRITO_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_FILTRITO))
+typedef struct _GstFiltrito GstFiltrito;
+typedef struct _GstFiltritoClass GstFiltritoClass;
 
 struct _GstFiltrito
 {
-  GstElement element;
+  GstOpencvVideoFilter element;
 
-  GstPad *sinkpad, *srcpad;
+  gboolean sent_profile_load_failed_msg;
 
-  gboolean silent;
+  gchar *profile;
+  gboolean display;
+  gdouble scale_factor;
+
+  cv::Mat cvGray;
+  cv::CascadeClassifier *cvCascade;
 };
 
-G_END_DECLS
+struct _GstFiltritoClass
+{
+  GstOpencvVideoFilterClass parent_class;
+};
 
+GType gst_filtrito_get_type (void);
+
+GST_ELEMENT_REGISTER_DECLARE (filtrito);
+
+G_END_DECLS
 #endif /* __GST_FILTRITO_H__ */
