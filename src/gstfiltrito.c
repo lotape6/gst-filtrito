@@ -60,9 +60,6 @@
 #  include <config.h>
 #endif
 
-#include <gst/gst.h>
-#include <gst/video/video.h>
-#include <gst/video/gstvideofilter.h>
 
 #include "gstfiltrito.h"
 
@@ -107,10 +104,11 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     );
 
 #define gst_filtrito_parent_class parent_class
-G_DEFINE_TYPE_WITH_CODE (GstFiltrito, gst_filtrito,
-    GST_TYPE_VIDEO_FILTER,
-    GST_DEBUG_CATEGORY_INIT (gst_filtrito_debug, "filtrito",
-        0, "debug category for filtrito element"));
+G_DEFINE_TYPE (GstFiltrito, gst_filtrito, GST_TYPE_VIDEO_FILTER);
+// G_DEFINE_TYPE_WITH_CODE (GstFiltrito, gst_filtrito,
+//     GST_TYPE_VIDEO_FILTER,
+//     GST_DEBUG_CATEGORY_INIT (gst_filtrito_debug, "filtrito",
+//         0, "debug category for filtrito element"));
 
 
 
@@ -121,8 +119,8 @@ static void gst_filtrito_get_property (GObject * object,
 
 static gboolean gst_filtrito_sink_event (GstPad * pad,
     GstObject * parent, GstEvent * event);
-static GstFlowReturn gst_filtrito_chain (GstPad * pad,
-    GstObject * parent, GstBuffer * buf);
+static GstFlowReturn gst_filtrito_transform_ip (GstVideoFilter * trans,
+                                                GstVideoFrame * frame);
 
 static GstCaps * gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
   GstCaps * caps, GstCaps * filter);
@@ -134,16 +132,18 @@ static void
 gst_filtrito_class_init (GstFiltritoClass * klass)
 {
   GObjectClass *gobject_class;
-  GstElementClass *gstelement_class;
   GstVideoFilterClass *video_filter_class = GST_VIDEO_FILTER_CLASS (klass);
   
+  GstElementClass *gstelement_class;
+
   GstBaseTransformClass *base_transform_class =
       GST_BASE_TRANSFORM_CLASS (klass);
   
   gobject_class = (GObjectClass *) klass;
-  // gstelement_class = (GstElementClass *) klass;
+	gstelement_class = (GstElementClass *) klass;
 
   base_transform_class->transform_caps = gst_filtrito_transform_caps;
+  video_filter_class->transform_frame_ip = GST_DEBUG_FUNCPTR (gst_filtrito_transform_ip);
   gobject_class->set_property = gst_filtrito_set_property;
   gobject_class->get_property = gst_filtrito_get_property;
 
@@ -151,14 +151,19 @@ gst_filtrito_class_init (GstFiltritoClass * klass)
       g_param_spec_boolean ("silent", "Silent", "Produce verbose output ?",
           FALSE, G_PARAM_READWRITE));
 
-  gst_element_class_set_details_simple (GST_ELEMENT_CLASS (klass),
-      "Filtrito",
-      "FIXME:Generic",
-      "FIXME:Generic Template Element", "lotape6 <<user@hostname.org>>");
+  // gst_element_class_set_details_simple (GST_ELEMENT_CLASS (klass),
+  //     "Filtrito",
+  //     "FIXME:Generic",
+  //     "FIXME:Generic Template Element", "lotape6 <<user@hostname.org>>");
 
-  gst_element_class_add_pad_template (GST_ELEMENT_CLASS (klass),
+	gst_element_class_set_static_metadata (gstelement_class,
+		"Video magnification", "Filter/Effect/Video",
+		"Magnifies small color or motion temporal variations",
+		"Chris Hiszpanski <chris@hiszpanski.name>");
+
+  gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&src_factory));
-  gst_element_class_add_pad_template (GST_ELEMENT_CLASS (klass),
+  gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&sink_factory));
 }
 
@@ -173,8 +178,8 @@ gst_filtrito_init (GstFiltrito * filter)
   filter->sinkpad = gst_pad_new_from_static_template (&sink_factory, "sink");
   gst_pad_set_event_function (filter->sinkpad,
       GST_DEBUG_FUNCPTR (gst_filtrito_sink_event));
-  gst_pad_set_chain_function (filter->sinkpad,
-      GST_DEBUG_FUNCPTR (gst_filtrito_chain));
+  // gst_pad_set_chain_function (filter->sinkpad,
+  //     GST_DEBUG_FUNCPTR (gst_filtrito_transform_ip));
   GST_PAD_SET_PROXY_CAPS (filter->sinkpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->sinkpad);
 
@@ -216,37 +221,6 @@ gst_filtrito_get_property (GObject * object, guint prop_id,
       break;
   }
 }
-
-// /* Transform caps negotiation */
-// static gboolean
-// gst_filtrito_setcaps (GstMyFilter *filter,
-//                GstCaps *caps)
-// {
-//   GstStructure *structure;
-//   int rate_num, rate_den, width, height;
-//   gboolean ret;
-//   GstCaps *outcaps;
-
-//   structure = gst_caps_get_structure (caps, 0);
-//   ret = gst_structure_get_fraction (structure, "framerate", rate_num, rate_den);
-//   ret = ret && gst_structure_get_int (structure, "width", &width);
-//   ret = ret && gst_structure_get_int (structure, "height", &height);
-//   if (!ret)
-//     return FALSE;
-
-//   outcaps = gst_caps_new_simple ("video/x-raw",
-//      "format", G_TYPE_STRING, "BGR",
-//      "framerate", GST_TYPE_FRACTION, rate_num, rate_den,
-//      "pixel-aspect-ratio", GST_TYPE_FRACTION, 1, 1,
-//      "width", G_TYPE_INT, width,
-//      "height", G_TYPE_INT, height,
-//      NULL);
-  
-//   ret = gst_pad_set_caps (filter->srcpad, outcaps);
-//   gst_caps_unref (outcaps);
-
-//   return ret;
-// }
 
 static GstCaps *
 gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
@@ -344,17 +318,18 @@ gst_filtrito_sink_event (GstPad * pad, GstObject * parent,
  * this function does the actual processing
  */
 static GstFlowReturn
-gst_filtrito_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
+gst_filtrito_transform_ip (GstVideoFilter * trans,
+                           GstVideoFrame * frame)
 {
   GstFiltrito *filter;
 
-  filter = GST_FILTRITO (parent);
+  filter = GST_FILTRITO (trans);
 
   if (filter->silent == FALSE)
     g_print ("I'm plugged, therefore I'm in.\n");
 
   /* just push out the incoming buffer without touching it */
-  return gst_pad_push (filter->srcpad, buf);
+  return GST_FLOW_OK;
 }
 
 

@@ -1,4 +1,4 @@
-project('gst-filtrito', 'c', version : '0.0.0.1', license : 'LGPL')
+project('gst-filtrito', 'c', version : '1.16.2', license : 'LGPL')
 
 plugins_install_dir = join_paths(get_option('libdir'), 'gstreamer-1.0')
 
@@ -11,9 +11,9 @@ api_version = '1.0'
 gst_dep = dependency('gstreamer-1.0',
     fallback : ['gstreamer', 'gst_dep'])
 
-gst_video_dep = dependency('gstreamer-video-1.0',
-    fallback : ['gstreamer', 'gst_video_dep'])
-
+gstvideo_dep = dependency('gstreamer-video-1.0', version : '1.16.2',
+    fallback : ['gst-plugins-base', 'video_dep'])
+    
 plugin_c_args = ['-DHAVE_CONFIG_H']
 
 gstaudio_dep = dependency('gstreamer-audio-1.0',
@@ -36,7 +36,7 @@ filtrito_sources = [
 gstfiltrito = library('gstfiltrito',
   filtrito_sources,
   c_args: plugin_c_args,
-  dependencies : [gst_dep, gstaudio_dep, gst_video_dep],
+  dependencies : [gst_dep, gstaudio_dep, gstvideo_dep],
   install : true,
   install_dir : plugins_install_dir,
 )

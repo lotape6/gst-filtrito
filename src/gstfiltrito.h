@@ -48,21 +48,44 @@
 #define __GST_FILTRITO_H__
 
 #include <gst/gst.h>
+#include <gst/video/video.h>
+#include <gst/video/gstvideofilter.h>
 
 G_BEGIN_DECLS
 
-#define GST_TYPE_FILTRITO (gst_filtrito_get_type())
-G_DECLARE_FINAL_TYPE (GstFiltrito, gst_filtrito,
-    GST, FILTRITO, GstElement)
+#define GST_TYPE_FILTRITO \
+  (gst_filtrito_get_type())
+#define GST_FILTRITO(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_FILTRITO,GstFiltrito))
+#define GST_FILTRITO_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_FILTRITO,GstFiltritoClass))
+#define GST_IS_FILTRITO(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_FILTRITO))
+#define GST_IS_FILTRITO_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_FILTRITO))
+
+// G_DECLARE_FINAL_TYPE (GstFiltrito, gst_filtrito,
+//     GST, FILTRITO, GstElement)
+
+
+
+typedef struct _GstFiltrito GstFiltrito;
+typedef struct _GstFiltritoClass GstFiltritoClass;
 
 struct _GstFiltrito
 {
-  GstElement element;
+  GstVideoFilter parent;
 
   GstPad *sinkpad, *srcpad;
 
   gboolean silent;
 };
+
+struct _GstFiltritoClass {
+	GstVideoFilterClass parent_class;
+};
+
+GType gst_filtrito_get_type (void);
 
 G_END_DECLS
 
