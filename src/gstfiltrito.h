@@ -47,11 +47,11 @@
 #ifndef __GST_FILTRITO_H__
 #define __GST_FILTRITO_H__
 
-#include <gst/gst.h>
 #include <gst/opencv/gstopencvvideofilter.h>
+#include <gst/video/gstvideofilter.h>
 
-#include <opencv2/core.hpp>
-#include <opencv2/objdetect.hpp>
+// #include <opencv2/core.hpp>
+// #include <opencv2/objdetect.hpp>
 
 G_BEGIN_DECLS
 /* #defines don't like whitespacey bits */
@@ -79,7 +79,7 @@ struct _GstFiltrito
   gdouble scale_factor;
 
   cv::Mat cvGray;
-  cv::CascadeClassifier *cvCascade;
+  // cv::CascadeClassifier *cvCascade;
 };
 
 struct _GstFiltritoClass

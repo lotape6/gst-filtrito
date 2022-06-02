@@ -62,8 +62,8 @@
 
 #include <vector>
 
-#include "gstfiltrito.h"
 #include <opencv2/imgproc.hpp>
+#include "gstfiltrito.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_filtrito_debug);
 #define GST_CAT_DEFAULT gst_filtrito_debug
@@ -112,10 +112,11 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE ("RGB"))
     );
+
+#define gst_filtrito_parent_class parent_class
     //TODO: Fix compilation error declaring type (looks like dependency error) 
-G_DEFINE_TYPE_WITH_CODE (GstFiltrito, gst_filtrito,
-    GST_TYPE_VIDEO_FILTER, GST_DEBUG_CATEGORY_INIT (gst_filtrito_debug,
-        "filtrito", 0, "No purpose defined yet"););
+G_DEFINE_TYPE_WITH_CODE (GstFiltrito, gst_filtrito, GST_TYPE_OPENCV_VIDEO_FILTER,
+ GST_DEBUG_CATEGORY_INIT (gst_filtrito_debug, "filtrito", 0, "filtrito"););
 GST_ELEMENT_REGISTER_DEFINE (filtrito, "filtrito", GST_RANK_NONE,
     GST_TYPE_FILTRITO);
 
@@ -131,8 +132,8 @@ static gboolean gst_filtrito_set_caps (GstOpencvVideoFilter * transform,
 static GstFlowReturn gst_filtrito_transform_ip (GstOpencvVideoFilter *
     transform, GstBuffer * buffer, Mat img);
 
-static CascadeClassifier *gst_filtrito_load_profile (GstFiltrito *
-    filter, gchar * profile);
+// static CascadeClassifier *gst_filtrito_load_profile (GstFiltrito *
+//     filter, gchar * profile);
 
 /* Clean up */
 static void
@@ -142,8 +143,8 @@ gst_filtrito_finalize (GObject * obj)
 
   filter->cvGray.release ();
 
-  if (filter->cvCascade)
-    delete filter->cvCascade;
+  // if (filter->cvCascade)
+  //   delete filter->cvCascade;
 
   g_free (filter->profile);
 
@@ -200,7 +201,7 @@ static void
 gst_filtrito_init (GstFiltrito * filter)
 {
   filter->profile = g_strdup (DEFAULT_PROFILE);
-  filter->cvCascade = gst_filtrito_load_profile (filter, filter->profile);
+  // filter->cvCascade = gst_filtrito_load_profile (filter, filter->profile);
   filter->sent_profile_load_failed_msg = FALSE;
   filter->scale_factor = DEFAULT_SCALE_FACTOR;
 
@@ -217,10 +218,10 @@ gst_filtrito_set_property (GObject * object, guint prop_id,
   switch (prop_id) {
     case PROP_PROFILE:
       g_free (filter->profile);
-      if (filter->cvCascade)
-        delete filter->cvCascade;
+      // if (filter->cvCascade)
+        // delete filter->cvCascade;
       filter->profile = g_value_dup_string (value);
-      filter->cvCascade = gst_filtrito_load_profile (filter, filter->profile);
+      // filter->cvCascade = gst_filtrito_load_profile (filter, filter->profile);
       filter->sent_profile_load_failed_msg = FALSE;
       break;
     case PROP_SCALE_FACTOR:
@@ -300,16 +301,16 @@ gst_filtrito_transform_ip (GstOpencvVideoFilter * transform,
   return GST_FLOW_OK;
 }
 
-static CascadeClassifier *
-gst_filtrito_load_profile (GstFiltrito * filter, gchar * profile)
-{
-  CascadeClassifier *cascade;
+// static CascadeClassifier *
+// gst_filtrito_load_profile (GstFiltrito * filter, gchar * profile)
+// {
+//   CascadeClassifier *cascade;
 
-  cascade = new CascadeClassifier (profile);
-  if (cascade->empty ()) {
-    GST_ERROR_OBJECT (filter, "Invalid profile file: %s", profile);
-    delete cascade;
-    return NULL;
-  }
-  return cascade;
-}
+//   cascade = new CascadeClassifier (profile);
+//   if (cascade->empty ()) {
+//     GST_ERROR_OBJECT (filter, "Invalid profile file: %s", profile);
+//     delete cascade;
+//     return NULL;
+//   }
+//   return cascade;
+// }
