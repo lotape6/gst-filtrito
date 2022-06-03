@@ -51,6 +51,8 @@
 #include <gst/video/video.h>
 #include <gst/video/gstvideofilter.h>
 
+#include <opencv2/core.hpp>
+
 G_BEGIN_DECLS
 
 #define GST_TYPE_FILTRITO \
@@ -77,8 +79,11 @@ struct _GstFiltrito
   GstVideoFilter parent;
 
   GstPad *sinkpad, *srcpad;
+  
+  cv::Mat frame;
 
   gboolean silent;
+
 };
 
 struct _GstFiltritoClass {

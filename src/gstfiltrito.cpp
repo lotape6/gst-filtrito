@@ -124,6 +124,9 @@ static GstFlowReturn gst_filtrito_transform_ip (GstVideoFilter * trans,
 
 static GstCaps * gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
   GstCaps * caps, GstCaps * filter);
+static gboolean   gst_filtrito_set_caps (GstBaseTransform * trans,
+                                         GstCaps * incaps,
+                                         GstCaps * outcaps);
 
 /* GObject vmethod implementations */
 
@@ -143,6 +146,7 @@ gst_filtrito_class_init (GstFiltritoClass * klass)
 	gstelement_class = (GstElementClass *) klass;
 
   base_transform_class->transform_caps = gst_filtrito_transform_caps;
+  base_transform_class->set_caps = GST_DEBUG_FUNCPTR (gst_filtrito_set_caps);
   video_filter_class->transform_frame_ip = GST_DEBUG_FUNCPTR (gst_filtrito_transform_ip);
   gobject_class->set_property = gst_filtrito_set_property;
   gobject_class->get_property = gst_filtrito_get_property;
@@ -157,9 +161,9 @@ gst_filtrito_class_init (GstFiltritoClass * klass)
   //     "FIXME:Generic Template Element", "lotape6 <<user@hostname.org>>");
 
 	gst_element_class_set_static_metadata (gstelement_class,
-		"Video magnification", "Filter/Effect/Video",
-		"Magnifies small color or motion temporal variations",
-		"Chris Hiszpanski <chris@hiszpanski.name>");
+		"Template for video processing with opencv", "Filter/Effect/Video",
+		"Generic video filter template with opencv",
+		"Fidel Gonzalez <lotape6@gmail.com>");
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&src_factory));
@@ -282,6 +286,39 @@ gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
 
   }
 
+ /* Allows the subclass to be notified of the actual caps set. */ 
+  static gboolean  
+  gst_filtrito_set_caps (GstBaseTransform * trans,
+                         GstCaps * incaps,
+                         GstCaps * outcaps)
+{
+  GstFiltrito *filter;
+  gboolean ret;
+
+  filter = GST_FILTRITO (trans);
+
+  GstStructure *s = gst_caps_get_structure(incaps, 0);
+  
+  int width, height;
+  gboolean res;
+
+  res = gst_structure_get_int (s, "width", &width);
+  res |= gst_structure_get_int (s, "height", &height);
+  
+  if (!res) {
+      GST_ERROR("Unable to get width and height from caps");
+      ret = TRUE;
+  }
+  else
+  {
+    GST_INFO("Allocating new cv::Mat with height: %d and width %d",height,width);
+
+    ret= TRUE;
+  }
+
+  return ret;
+}                                         
+
 
 /* GstElement vmethod implementations */
 
@@ -324,6 +361,8 @@ gst_filtrito_transform_ip (GstVideoFilter * trans,
   GstFiltrito *filter;
 
   filter = GST_FILTRITO (trans);
+
+
 
   if (filter->silent == FALSE)
     g_print ("I'm plugged, therefore I'm in.\n");

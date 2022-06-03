@@ -1,8 +1,8 @@
-project('gst-filtrito', 'c', version : '1.16.2', license : 'LGPL')
+project('gst-filtrito', 'cpp', version : '0.0.1', license : 'LGPL')
 
 plugins_install_dir = join_paths(get_option('libdir'), 'gstreamer-1.0')
 
-cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
 
 gst_version = meson.project_version()
 
@@ -11,13 +11,14 @@ api_version = '1.0'
 gst_dep = dependency('gstreamer-1.0',
     fallback : ['gstreamer', 'gst_dep'])
 
-gstvideo_dep = dependency('gstreamer-video-1.0', version : '1.16.2',
+gstvideo_dep = dependency('gstreamer-video-1.0', 
     fallback : ['gst-plugins-base', 'video_dep'])
     
-plugin_c_args = ['-DHAVE_CONFIG_H']
+plugin_cpp_args = ['-DHAVE_CONFIG_H']
 
-gstaudio_dep = dependency('gstreamer-audio-1.0',
-    fallback: ['gst-plugins-base', 'audio_dep'])
+
+opencv_dep = dependency('opencv349',
+    fallback: ['opencv', 'audio_dep'])
 
 cdata = configuration_data()
 cdata.set_quoted('PACKAGE_VERSION', gst_version)
@@ -30,13 +31,13 @@ configure_file(output : 'config.h', configuration : cdata)
 
 # Plugin 2 (audio filter example)
 filtrito_sources = [
-  'src/gstfiltrito.c',
+  'src/gstfiltrito.cpp',
   ]
 
 gstfiltrito = library('gstfiltrito',
   filtrito_sources,
-  c_args: plugin_c_args,
-  dependencies : [gst_dep, gstaudio_dep, gstvideo_dep],
+  cpp_args: plugin_cpp_args,
+  dependencies : [gst_dep, opencv_dep, gstvideo_dep],
   install : true,
   install_dir : plugins_install_dir,
 )
