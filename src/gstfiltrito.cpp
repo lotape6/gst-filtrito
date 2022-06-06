@@ -124,10 +124,11 @@ static GstFlowReturn gst_filtrito_transform_ip (GstVideoFilter * trans,
 
 static GstCaps * gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
   GstCaps * caps, GstCaps * filter);
-static gboolean   gst_filtrito_set_caps (GstBaseTransform * trans,
-                                         GstCaps * incaps,
-                                         GstCaps * outcaps);
-
+static gboolean   gst_filtrito_set_info (GstVideoFilter * filter,
+          GstCaps * incaps,
+          GstVideoInfo * in_info,
+          GstCaps * outcaps,
+          GstVideoInfo * out_info);
 /* GObject vmethod implementations */
 
 /* initialize the filtrito's class */
@@ -146,7 +147,8 @@ gst_filtrito_class_init (GstFiltritoClass * klass)
 	gstelement_class = (GstElementClass *) klass;
 
   base_transform_class->transform_caps = gst_filtrito_transform_caps;
-  base_transform_class->set_caps = GST_DEBUG_FUNCPTR (gst_filtrito_set_caps);
+  video_filter_class->set_info = GST_DEBUG_FUNCPTR (gst_filtrito_set_info);
+  
   video_filter_class->transform_frame_ip = GST_DEBUG_FUNCPTR (gst_filtrito_transform_ip);
   gobject_class->set_property = gst_filtrito_set_property;
   gobject_class->get_property = gst_filtrito_get_property;
@@ -261,6 +263,10 @@ gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
 
     gst_structure_remove_field (structure, "colorimetry");
     gst_structure_remove_field (structure, "chroma-site");
+    gst_structure_remove_field (structure, "interlace-mode");
+    gst_structure_remove_field (structure, "multiview-mode");
+    gst_structure_remove_field (structure, "pixel-aspect-ratio");
+    
 
     gst_caps_append_structure (to, structure);
 
@@ -285,17 +291,20 @@ gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
 
 
   }
-
+  
  /* Allows the subclass to be notified of the actual caps set. */ 
-  static gboolean  
-  gst_filtrito_set_caps (GstBaseTransform * trans,
-                         GstCaps * incaps,
-                         GstCaps * outcaps)
+static gboolean   
+gst_filtrito_set_info (GstVideoFilter * filter,
+                        GstCaps * incaps,
+                        GstVideoInfo * in_info,
+                        GstCaps * outcaps,
+                        GstVideoInfo * out_info)
 {
-  GstFiltrito *filter;
+  GstFiltrito *filtrito;
   gboolean ret;
-
-  filter = GST_FILTRITO (trans);
+  
+  filtrito = GST_FILTRITO (filter);
+  GST_DEBUG_OBJECT (filtrito, "set_caps");
 
   GstStructure *s = gst_caps_get_structure(incaps, 0);
   
@@ -307,12 +316,13 @@ gst_filtrito_transform_caps (GstBaseTransform * trans, GstPadDirection dir,
   
   if (!res) {
       GST_ERROR("Unable to get width and height from caps");
-      ret = TRUE;
+      ret = FALSE;
   }
   else
   {
     GST_INFO("Allocating new cv::Mat with height: %d and width %d",height,width);
-
+    filtrito->frame = cv::Mat(height, width, CV_8UC3);
+    
     ret= TRUE;
   }
 
@@ -361,9 +371,20 @@ gst_filtrito_transform_ip (GstVideoFilter * trans,
   GstFiltrito *filter;
 
   filter = GST_FILTRITO (trans);
+  GstMapInfo map;
+  gst_buffer_map(frame->buffer, &map, GST_MAP_READ);
 
+  filter->frame.data = (uchar*)map.data;
 
-
+  cv::putText(filter->frame, //target image
+            "Filtrito!", //text
+            cv::Point(10, filter->frame.rows / 2), //top-left position
+            cv::FONT_HERSHEY_DUPLEX,
+            1.0,
+            CV_RGB(118, 185, 0), //font color
+            2);
+  
+  gst_buffer_unmap(frame->buffer, &map);
   if (filter->silent == FALSE)
     g_print ("I'm plugged, therefore I'm in.\n");
 
